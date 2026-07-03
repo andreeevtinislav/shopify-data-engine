@@ -1,0 +1,4 @@
+other_services:
+  object_manager: true
+  query_manager: true
+  semantic_manager: false

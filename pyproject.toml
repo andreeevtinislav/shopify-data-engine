@@ -1,0 +1,27 @@
+[project]
+name = "shopify-engine"
+version = "0.1.0"
+description = "Custom ingestion pipeline from Shopify to Snowflake"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "snowflake-connector-python>=3.12",
+    "python-dotenv>=1.0",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "responses>=0.25",
+]
+
+[project.scripts]
+sync-orders = "shopify_engine.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
