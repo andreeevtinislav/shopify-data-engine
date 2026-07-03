@@ -168,3 +168,14 @@ resource "snowflake_grant_account_role" "svc_user" {
   role_name = snowflake_account_role.this[each.key].name
   user_name = snowflake_service_user.this[each.key].name
 }
+
+# ACCOUNTADMIN inherits every role provisioned here, so anyone with ACCOUNTADMIN
+# active can also see/manage what SHOPIFY_LOADER_ROLE, DBT_TRANSFORM_ROLE, etc.
+# own — standard Snowflake role-hierarchy grant, applies automatically to any
+# future role added to access.yml.
+resource "snowflake_grant_account_role" "to_accountadmin" {
+  for_each = local.roles
+
+  role_name        = snowflake_account_role.this[each.key].name
+  parent_role_name = "ACCOUNTADMIN"
+}
