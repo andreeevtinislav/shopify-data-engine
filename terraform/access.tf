@@ -31,7 +31,12 @@ resource "snowflake_grant_privileges_to_account_role" "raw_schema_all" {
   }
 }
 
-# Covers the tables/stage/file format created above.
+# Covers the tables created above. "ON ALL TABLES" only grants against tables that
+# already exist at apply time, so this must run after they're created — Terraform
+# doesn't infer that ordering on its own since the grant doesn't reference the table
+# resources directly, hence the explicit depends_on (learned the hard way: without
+# it, this grant and the table creations run concurrently and can complete before
+# the tables exist, silently granting nothing).
 resource "snowflake_grant_privileges_to_account_role" "raw_schema_tables_all" {
   account_role_name = snowflake_account_role.shopify_loader.name
   all_privileges    = true
@@ -41,6 +46,11 @@ resource "snowflake_grant_privileges_to_account_role" "raw_schema_tables_all" {
       in_schema          = snowflake_schema.raw.fully_qualified_name
     }
   }
+
+  depends_on = [
+    snowflake_table.shopify_orders_json,
+    snowflake_table.sync_state,
+  ]
 }
 
 # Grants on any table added to RAW later (e.g. a future products/customers extractor)
@@ -56,6 +66,8 @@ resource "snowflake_grant_privileges_to_account_role" "raw_schema_future_tables_
   }
 }
 
+# "ON ALL STAGES" has the same apply-time-only semantics as the tables grant above —
+# must run after the stage exists, hence the explicit depends_on.
 resource "snowflake_grant_privileges_to_account_role" "raw_schema_stages_all" {
   account_role_name = snowflake_account_role.shopify_loader.name
   all_privileges    = true
@@ -65,6 +77,8 @@ resource "snowflake_grant_privileges_to_account_role" "raw_schema_stages_all" {
       in_schema          = snowflake_schema.raw.fully_qualified_name
     }
   }
+
+  depends_on = [snowflake_stage_internal.shopify_stage]
 }
 
 # Service user the pipeline authenticates as (key-pair auth recommended: set

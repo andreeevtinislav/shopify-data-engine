@@ -11,7 +11,6 @@ ORDER_FIELDS = """
   subtotalPriceSet { shopMoney { amount } }
   totalDiscountsSet { shopMoney { amount } }
   totalTaxSet { shopMoney { amount } }
-  customer { id }
   lineItems(first: 250) {
     pageInfo { hasNextPage }
     edges {
@@ -20,7 +19,6 @@ ORDER_FIELDS = """
         title
         quantity
         sku
-        variant { id }
         originalUnitPriceSet { shopMoney { amount } }
         totalDiscountSet { shopMoney { amount } }
       }
