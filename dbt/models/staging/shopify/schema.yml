@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: stg_shopify__orders
+    description: "One row per Shopify order, flattened from RAW.SHOPIFY_ORDERS_JSON."
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: order_name
+        tests: [not_null]
+
+  - name: stg_shopify__order_line_items
+    description: "One row per Shopify order line item, unnested from the order payload's lineItems array."
+    columns:
+      - name: line_item_id
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_shopify__orders')
+                field: order_id
+
+  - name: stg_shopify__refunds
+    description: "One row per Shopify refund, unnested from the order payload's refunds array."
+    columns:
+      - name: refund_id
+        tests: [not_null, unique]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_shopify__orders')
+                field: order_id

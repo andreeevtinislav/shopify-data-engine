@@ -1,0 +1,13 @@
+name: 'shopify_data_engine'
+version: '1.0.0'
+config-version: 2
+profile: 'shopify_data_engine'
+
+model-paths: ["models"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  shopify_data_engine:
+    staging:
+      +materialized: view

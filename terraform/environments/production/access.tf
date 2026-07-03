@@ -5,18 +5,17 @@ locals {
 module "access" {
   source = "../../modules/access"
 
-  role_name            = local.access_config.role.name
-  role_comment         = try(local.access_config.role.comment, null)
-  service_user_name    = local.access_config.service_user.name
-  service_user_comment = try(local.access_config.service_user.comment, null)
+  roles          = local.access_config.roles
+  warehouse_name = module.warehouse.names[0]
 
-  warehouse_name              = module.warehouse.names[0]
-  database_name               = module.database.databases["SHOPIFY_DATA"].name
-  schema_name                 = module.database.schema_names["SHOPIFY_DATA.RAW"]
-  schema_fully_qualified_name = module.database.schema_fully_qualified_names["SHOPIFY_DATA.RAW"]
+  schema_names                 = module.database.schema_names
+  schema_fully_qualified_names = module.database.schema_fully_qualified_names
 
   tables = module.table.tables
   stages = module.stage.stages
 
-  pipeline_rsa_public_key = var.pipeline_rsa_public_key
+  service_user_rsa_public_keys = {
+    SHOPIFY_LOADER_ROLE = var.pipeline_rsa_public_key
+    DBT_TRANSFORM_ROLE  = var.dbt_transform_rsa_public_key
+  }
 }

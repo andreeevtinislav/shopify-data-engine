@@ -1,7 +1,30 @@
-role:
-  name: SHOPIFY_LOADER_ROLE
-  comment: "Runtime role for the Shopify ingestion pipeline. Read/write on RAW schema only."
+roles:
+  - name: SHOPIFY_LOADER_ROLE
+    comment: "Runtime role for the Shopify ingestion pipeline. Read/write on RAW schema only."
+    service_user:
+      name: SHOPIFY_PIPELINE_SVC
+      comment: "Service account used by the Shopify ingestion pipeline (scripts/sync_orders.py)."
+      default_database: SHOPIFY_DATA
+      default_schema: RAW
+    grants:
+      - database: SHOPIFY_DATA
+        schema: RAW
+        privilege: readwrite
+        object_types: [TABLES, STAGES]
 
-service_user:
-  name: SHOPIFY_PIPELINE_SVC
-  comment: "Service account used by the Shopify ingestion pipeline (scripts/sync_orders.py)."
+  - name: DBT_TRANSFORM_ROLE
+    comment: "Runtime role for the dbt transformation project (../dbt). Read-only on RAW, full access on STAGING."
+    service_user:
+      name: DBT_TRANSFORM_SVC
+      comment: "Service account used by dbt to build and test staging/mart models."
+      default_database: SHOPIFY_DATA
+      default_schema: STAGING
+    grants:
+      - database: SHOPIFY_DATA
+        schema: RAW
+        privilege: read
+        object_types: [TABLES]
+      - database: SHOPIFY_DATA
+        schema: STAGING
+        privilege: readwrite
+        object_types: [TABLES, VIEWS]

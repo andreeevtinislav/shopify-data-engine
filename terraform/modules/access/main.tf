@@ -1,12 +1,54 @@
-# Least-privilege role the pipeline authenticates as at runtime — distinct from the
-# ACCOUNTADMIN-level credentials Terraform itself uses to provision infra.
+locals {
+  roles = { for r in var.roles : r.name => r }
+
+  # "<role>.<database>" -> distinct databases the role needs USAGE on.
+  role_databases = merge([
+    for r in var.roles : {
+      for db in distinct([for g in r.grants : g.database]) :
+      "${r.name}.${db}" => { role = r.name, database = db }
+    }
+  ]...)
+
+  # "<role>.<database>.<schema>" -> schema-level grant (USAGE for read, ALL for readwrite).
+  role_grants = merge([
+    for r in var.roles : {
+      for g in r.grants :
+      "${r.name}.${g.database}.${g.schema}" => merge(g, { role = r.name })
+    }
+  ]...)
+  role_grants_read      = { for k, g in local.role_grants : k => g if g.privilege == "read" }
+  role_grants_readwrite = { for k, g in local.role_grants : k => g if g.privilege == "readwrite" }
+
+  # "<role>.<database>.<schema>.<object_type>" -> grant+object_type (current-object grants).
+  role_grant_objects = merge([
+    for k, g in local.role_grants : {
+      for ot in g.object_types : "${k}.${ot}" => merge(g, { object_type = ot })
+    }
+  ]...)
+  role_grant_objects_read      = { for k, g in local.role_grant_objects : k => g if g.privilege == "read" }
+  role_grant_objects_readwrite = { for k, g in local.role_grant_objects : k => g if g.privilege == "readwrite" }
+
+  # FUTURE grants only make sense for TABLES/VIEWS (matches pre-refactor behavior,
+  # which never had a "future stages" grant).
+  role_grant_objects_future_read = {
+    for k, g in local.role_grant_objects_read : k => g if contains(["TABLES", "VIEWS"], g.object_type)
+  }
+  role_grant_objects_future_readwrite = {
+    for k, g in local.role_grant_objects_readwrite : k => g if contains(["TABLES", "VIEWS"], g.object_type)
+  }
+}
+
 resource "snowflake_account_role" "this" {
-  name    = var.role_name
-  comment = var.role_comment
+  for_each = local.roles
+
+  name    = each.value.name
+  comment = try(each.value.comment, null)
 }
 
 resource "snowflake_grant_privileges_to_account_role" "warehouse_usage" {
-  account_role_name = snowflake_account_role.this.name
+  for_each = local.roles
+
+  account_role_name = snowflake_account_role.this[each.key].name
   privileges        = ["USAGE"]
   on_account_object {
     object_type = "WAREHOUSE"
@@ -15,78 +57,114 @@ resource "snowflake_grant_privileges_to_account_role" "warehouse_usage" {
 }
 
 resource "snowflake_grant_privileges_to_account_role" "database_usage" {
-  account_role_name = snowflake_account_role.this.name
+  for_each = local.role_databases
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
   privileges        = ["USAGE"]
   on_account_object {
     object_type = "DATABASE"
-    object_name = var.database_name
+    object_name = each.value.database
   }
 }
 
+# read tier: schema-level USAGE only.
+resource "snowflake_grant_privileges_to_account_role" "schema_usage" {
+  for_each = local.role_grants_read
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
+  privileges        = ["USAGE"]
+  on_schema {
+    schema_name = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
+  }
+}
+
+# readwrite tier: schema-level ALL PRIVILEGES. Kept as resource name "schema_all"
+# (unchanged from the pre-refactor module) so the existing SHOPIFY_LOADER_ROLE
+# grant maps onto it with a trivial for_each-ification via moved{}.
 resource "snowflake_grant_privileges_to_account_role" "schema_all" {
-  account_role_name = snowflake_account_role.this.name
+  for_each = local.role_grants_readwrite
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
   all_privileges    = true
   on_schema {
-    schema_name = var.schema_fully_qualified_name
+    schema_name = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
   }
 }
 
-# "ON ALL TABLES"/"ON ALL STAGES" only grant against objects that exist at apply
-# time. var.tables/var.stages are plain data (not read), so referencing them alone
-# wouldn't order this after their creation — the explicit depends_on is required.
-# Learned this the hard way: without it, this grant and the table/stage creation
-# run concurrently and can complete before the objects exist, silently granting
-# nothing.
-resource "snowflake_grant_privileges_to_account_role" "schema_tables_all" {
-  account_role_name = snowflake_account_role.this.name
-  all_privileges    = true
+# current objects, read tier: SELECT only.
+resource "snowflake_grant_privileges_to_account_role" "schema_objects_current_select" {
+  for_each = local.role_grant_objects_read
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
+  privileges        = ["SELECT"]
   on_schema_object {
     all {
-      object_type_plural = "TABLES"
-      in_schema          = var.schema_fully_qualified_name
+      object_type_plural = each.value.object_type
+      in_schema          = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
     }
   }
 
-  depends_on = [var.tables]
+  depends_on = [var.tables, var.stages]
 }
 
-# Covers tables added later (e.g. a future products/customers extractor) without
-# needing to touch this module again.
-resource "snowflake_grant_privileges_to_account_role" "schema_future_tables_all" {
-  account_role_name = snowflake_account_role.this.name
+# current objects, readwrite tier: ALL PRIVILEGES.
+resource "snowflake_grant_privileges_to_account_role" "schema_objects_current_all" {
+  for_each = local.role_grant_objects_readwrite
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
+  all_privileges    = true
+  on_schema_object {
+    all {
+      object_type_plural = each.value.object_type
+      in_schema          = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
+    }
+  }
+
+  depends_on = [var.tables, var.stages]
+}
+
+# future objects (TABLES/VIEWS only), read tier.
+resource "snowflake_grant_privileges_to_account_role" "schema_objects_future_select" {
+  for_each = local.role_grant_objects_future_read
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
+  privileges        = ["SELECT"]
+  on_schema_object {
+    future {
+      object_type_plural = each.value.object_type
+      in_schema          = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
+    }
+  }
+}
+
+# future objects (TABLES/VIEWS only), readwrite tier.
+resource "snowflake_grant_privileges_to_account_role" "schema_objects_future_all" {
+  for_each = local.role_grant_objects_future_readwrite
+
+  account_role_name = snowflake_account_role.this[each.value.role].name
   all_privileges    = true
   on_schema_object {
     future {
-      object_type_plural = "TABLES"
-      in_schema          = var.schema_fully_qualified_name
+      object_type_plural = each.value.object_type
+      in_schema          = var.schema_fully_qualified_names["${each.value.database}.${each.value.schema}"]
     }
   }
 }
 
-resource "snowflake_grant_privileges_to_account_role" "schema_stages_all" {
-  account_role_name = snowflake_account_role.this.name
-  all_privileges    = true
-  on_schema_object {
-    all {
-      object_type_plural = "STAGES"
-      in_schema          = var.schema_fully_qualified_name
-    }
-  }
-
-  depends_on = [var.stages]
-}
-
-# Service user the pipeline authenticates as (key-pair auth).
 resource "snowflake_service_user" "this" {
-  name              = var.service_user_name
-  comment           = var.service_user_comment
+  for_each = local.roles
+
+  name              = each.value.service_user.name
+  comment           = try(each.value.service_user.comment, null)
   default_warehouse = var.warehouse_name
-  default_role      = snowflake_account_role.this.name
-  default_namespace = "${var.database_name}.${var.schema_name}"
-  rsa_public_key    = var.pipeline_rsa_public_key
+  default_role      = snowflake_account_role.this[each.key].name
+  default_namespace = "${each.value.service_user.default_database}.${var.schema_names["${each.value.service_user.default_database}.${each.value.service_user.default_schema}"]}"
+  rsa_public_key    = var.service_user_rsa_public_keys[each.key]
 }
 
-resource "snowflake_grant_account_role" "loader_to_svc_user" {
-  role_name = snowflake_account_role.this.name
-  user_name = snowflake_service_user.this.name
+resource "snowflake_grant_account_role" "svc_user" {
+  for_each = local.roles
+
+  role_name = snowflake_account_role.this[each.key].name
+  user_name = snowflake_service_user.this[each.key].name
 }
