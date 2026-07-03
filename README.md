@@ -12,14 +12,42 @@ Custom ingestion pipeline that loads Shopify data into Snowflake. v1 covers orde
 
 ### 2. Snowflake infrastructure
 
-Provisioned via Terraform, organized as reusable modules (`terraform/modules/{warehouse,database,table,stage,access}`) driven by per-environment YAML config (`terraform/environments/production/*.yml`). Requires admin-level Snowflake credentials (`ACCOUNTADMIN`), supplied as `SNOWFLAKE_*` environment variables — see `terraform/environments/production/providers.tf`.
+Provisioned via Terraform, organized as reusable modules (`terraform/modules/{warehouse,database,table,stage,access}`) driven by per-environment YAML config (`terraform/environments/production/*.yml`).
 
-The pipeline's service user authenticates with key-pair auth, so generate a key pair first and pass the public key in:
+#### Terraform admin credentials (one-time, permanent)
+
+Terraform itself authenticates as a dedicated `TERRAFORM_ADMIN` service user via key-pair auth (`ACCOUNTADMIN` role) — set up once, never expires, no PAT regeneration needed. If it doesn't exist yet in your account:
 
 ```bash
-openssl genrsa -out snowflake_key.p8 4096
-openssl rsa -in snowflake_key.p8 -pubout -out snowflake_key.pub
-export TF_VAR_pipeline_rsa_public_key=$(grep -v '^-----' snowflake_key.pub | tr -d '\n')
+openssl genrsa -out secrets/terraform_admin_key.p8 4096
+openssl rsa -in secrets/terraform_admin_key.p8 -pubout -out secrets/terraform_admin_key.pub
+
+# Run once via any existing ACCOUNTADMIN session (e.g. a short-lived PAT — see
+# Snowsight > Settings > Authentication > Programmatic access tokens; if login
+# fails with "Network policy is required", use that token's "Bypass requirement
+# for network policy" option rather than opening up a network policy):
+#   CREATE USER TERRAFORM_ADMIN TYPE = SERVICE
+#     RSA_PUBLIC_KEY = '<contents of terraform_admin_key.pub, header/footer/newlines stripped>'
+#     DEFAULT_ROLE = ACCOUNTADMIN;
+#   GRANT ROLE ACCOUNTADMIN TO USER TERRAFORM_ADMIN;
+```
+
+`secrets/terraform_admin_key.p8` is gitignored — keep it, it's the permanent credential.
+
+#### Running Terraform
+
+The pipeline's own service user also authenticates with key-pair auth, so generate that key pair too and pass its public key in:
+
+```bash
+openssl genrsa -out secrets/snowflake_key.p8 4096
+openssl rsa -in secrets/snowflake_key.p8 -pubout -out secrets/snowflake_key.pub
+
+export SNOWFLAKE_ORGANIZATION_NAME="<org>"
+export SNOWFLAKE_ACCOUNT_NAME="<account>"
+export SNOWFLAKE_USER="TERRAFORM_ADMIN"
+export SNOWFLAKE_AUTHENTICATOR="SNOWFLAKE_JWT"
+export SNOWFLAKE_PRIVATE_KEY="$(cat secrets/terraform_admin_key.p8)"
+export TF_VAR_pipeline_rsa_public_key=$(grep -v '^-----' secrets/snowflake_key.pub | tr -d '\n')
 
 cd terraform/environments/production
 terraform init
@@ -27,7 +55,7 @@ terraform plan
 terraform apply
 ```
 
-Keep `snowflake_key.p8` (the private key) — its path goes into the pipeline's `.env` as `SNOWFLAKE_PRIVATE_KEY_PATH`.
+Keep `secrets/snowflake_key.p8` (the pipeline's private key) — its path goes into the pipeline's `.env` as `SNOWFLAKE_PRIVATE_KEY_PATH`.
 
 This creates the `SHOPIFY_WH` warehouse, `SHOPIFY_DATA.RAW` schema, an internal stage, the `SHOPIFY_ORDERS_JSON` and `_SYNC_STATE` tables, and a least-privilege `SHOPIFY_LOADER_ROLE` + service user for the pipeline to run as. To add a new table, warehouse, or database object, edit the relevant `.yml` file in `environments/production/` — no HCL changes needed unless the shape of the config itself changes.
 
