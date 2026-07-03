@@ -1,0 +1,42 @@
+tables:
+  - database: SHOPIFY_DATA
+    schema: RAW
+    name: SHOPIFY_ORDERS_JSON
+    comment: "Raw Shopify order payloads (GraphQL Admin API), upserted by Shopify order id."
+    columns:
+      - name: _SHOPIFY_ORDER_ID
+        type: STRING
+        nullable: false
+      - name: PAYLOAD
+        type: VARIANT
+        nullable: false
+      - name: _LOADED_AT
+        type: TIMESTAMP_NTZ
+        default_expression: "CURRENT_TIMESTAMP()"
+      - name: _SOURCE_FILE
+        type: STRING
+        nullable: true
+
+  - database: SHOPIFY_DATA
+    schema: RAW
+    name: _SYNC_STATE
+    comment: "Watermark/state tracking per synced object (e.g. orders) for backfill/incremental runs."
+    columns:
+      - name: OBJECT_NAME
+        type: STRING
+        nullable: false
+      - name: LAST_WATERMARK
+        type: TIMESTAMP_NTZ
+        nullable: true
+      - name: LAST_RUN_STARTED_AT
+        type: TIMESTAMP_NTZ
+        nullable: true
+      - name: LAST_RUN_COMPLETED_AT
+        type: TIMESTAMP_NTZ
+        nullable: true
+      - name: LAST_RUN_STATUS
+        type: STRING
+        nullable: true
+      - name: RECORDS_PROCESSED
+        type: NUMBER
+        nullable: true

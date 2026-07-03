@@ -1,0 +1,7 @@
+role:
+  name: SHOPIFY_LOADER_ROLE
+  comment: "Runtime role for the Shopify ingestion pipeline. Read/write on RAW schema only."
+
+service_user:
+  name: SHOPIFY_PIPELINE_SVC
+  comment: "Service account used by the Shopify ingestion pipeline (scripts/sync_orders.py)."

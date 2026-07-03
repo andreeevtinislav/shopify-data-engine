@@ -1,0 +1,6 @@
+databases:
+  - name: SHOPIFY_DATA
+    comment: "Landing zone for raw Shopify data."
+    schemas:
+      - name: RAW
+        comment: "Raw, untransformed Shopify API payloads. Source schema for the future dbt project."

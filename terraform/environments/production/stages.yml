@@ -1,0 +1,6 @@
+stages:
+  - database: SHOPIFY_DATA
+    schema: RAW
+    name: SHOPIFY_STAGE
+    comment: "Landing zone for gzipped Shopify JSONL files before MERGE into RAW tables."
+    file_format_type: JSON
