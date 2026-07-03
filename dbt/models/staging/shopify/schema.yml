@@ -1,8 +1,14 @@
 version: 2
 
 models:
+  - name: stg_shopify__orders_json
+    description: "Incrementally-maintained, deduped copy of RAW.SHOPIFY_ORDERS_JSON. Every other model in this folder refs() this instead of the source directly, so there's one place that owns pulling 'what's new' out of RAW."
+    columns:
+      - name: _shopify_order_id
+        tests: [not_null, unique]
+
   - name: stg_shopify__orders
-    description: "One row per Shopify order, flattened from RAW.SHOPIFY_ORDERS_JSON."
+    description: "One row per Shopify order, flattened from stg_shopify__orders_json."
     columns:
       - name: order_id
         tests: [not_null, unique]

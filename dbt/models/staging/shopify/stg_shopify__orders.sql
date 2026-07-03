@@ -1,5 +1,16 @@
+{{
+    config(
+        unique_key='order_id',
+        incremental_strategy='merge'
+    )
+}}
+
 with source as (
-    select * from {{ source('shopify', 'orders_json') }}
+    select * from {{ ref('stg_shopify__orders_json') }}
+
+    {% if is_incremental() %}
+    where _loaded_at > (select coalesce(max(_loaded_at), '1900-01-01'::timestamp_ntz) from {{ this }})
+    {% endif %}
 ),
 
 renamed as (

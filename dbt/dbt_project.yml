@@ -10,4 +10,5 @@ clean-targets: ["target", "dbt_packages"]
 models:
   shopify_data_engine:
     staging:
-      +materialized: view
+      +materialized: incremental
+      +on_schema_change: sync_all_columns
