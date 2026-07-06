@@ -19,6 +19,24 @@ tables:
 
   - database: SHOPIFY_DATA
     schema: RAW
+    name: SHOPIFY_PRODUCTS_JSON
+    comment: "Raw Shopify product (+ variants) payloads (GraphQL Admin API), upserted by Shopify product id."
+    columns:
+      - name: _SHOPIFY_PRODUCT_ID
+        type: STRING
+        nullable: false
+      - name: PAYLOAD
+        type: VARIANT
+        nullable: false
+      - name: _LOADED_AT
+        type: TIMESTAMP_NTZ
+        default_expression: "CURRENT_TIMESTAMP()"
+      - name: _SOURCE_FILE
+        type: STRING
+        nullable: true
+
+  - database: SHOPIFY_DATA
+    schema: RAW
     name: _SYNC_STATE
     comment: "Watermark/state tracking per synced object (e.g. orders) for backfill/incremental runs."
     columns:

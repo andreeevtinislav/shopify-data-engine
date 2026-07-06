@@ -9,6 +9,7 @@ from shopify_engine.shopify.client import ShopifyGraphQLClient
 from shopify_engine.shopify.queries import (
     CURRENT_BULK_OPERATION_QUERY,
     ORDERS_BULK_QUERY,
+    PRODUCTS_BULK_QUERY,
     START_BULK_OPERATION_MUTATION,
 )
 
@@ -22,12 +23,20 @@ class BulkOperationError(RuntimeError):
     pass
 
 
-def start_orders_bulk_operation(client: ShopifyGraphQLClient) -> str:
-    data = client.execute(START_BULK_OPERATION_MUTATION, {"query": ORDERS_BULK_QUERY})
+def start_bulk_operation(client: ShopifyGraphQLClient, query: str) -> str:
+    data = client.execute(START_BULK_OPERATION_MUTATION, {"query": query})
     result = data["bulkOperationRunQuery"]
     if result["userErrors"]:
         raise BulkOperationError(str(result["userErrors"]))
     return result["bulkOperation"]["id"]
+
+
+def start_orders_bulk_operation(client: ShopifyGraphQLClient) -> str:
+    return start_bulk_operation(client, ORDERS_BULK_QUERY)
+
+
+def start_products_bulk_operation(client: ShopifyGraphQLClient) -> str:
+    return start_bulk_operation(client, PRODUCTS_BULK_QUERY)
 
 
 def wait_for_bulk_operation(
@@ -70,29 +79,37 @@ def download_jsonl(url: str) -> Iterator[dict[str, Any]]:
                 yield json.loads(line)
 
 
-def reassemble_orders(lines: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Bulk operation JSONL flattens connection fields (e.g. lineItems) into
-    separate lines linked to their parent order via `__parentId`. Non-connection
-    list fields (e.g. refunds) stay nested inline on the order line as-is.
-    Regroups everything back into one JSON object per order.
+def _reassemble(lines: Iterable[dict[str, Any]], child_field: str) -> list[dict[str, Any]]:
+    """Bulk operation JSONL flattens connection fields (e.g. lineItems, variants)
+    into separate lines linked to their parent via `__parentId`. Other list fields
+    stay nested inline on the parent line as-is. Regroups everything back into
+    one JSON object per parent.
     """
-    orders: dict[str, dict[str, Any]] = {}
-    order_ids_in_sequence: list[str] = []
+    parents: dict[str, dict[str, Any]] = {}
+    parent_ids_in_sequence: list[str] = []
 
     for obj in lines:
         parent_id = obj.get("__parentId")
         if parent_id is None:
-            order = dict(obj)
-            order["lineItems"] = []
-            orders[order["id"]] = order
-            order_ids_in_sequence.append(order["id"])
+            parent = dict(obj)
+            parent[child_field] = []
+            parents[parent["id"]] = parent
+            parent_ids_in_sequence.append(parent["id"])
             continue
 
-        parent = orders.get(parent_id)
+        parent = parents.get(parent_id)
         if parent is None:
             # Bulk JSONL is parent-first, so this shouldn't happen; skip defensively
             # rather than crash the whole backfill over one malformed line.
             continue
-        parent["lineItems"].append({k: v for k, v in obj.items() if k != "__parentId"})
+        parent[child_field].append({k: v for k, v in obj.items() if k != "__parentId"})
 
-    return [orders[order_id] for order_id in order_ids_in_sequence]
+    return [parents[parent_id] for parent_id in parent_ids_in_sequence]
+
+
+def reassemble_orders(lines: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _reassemble(lines, child_field="lineItems")
+
+
+def reassemble_products(lines: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _reassemble(lines, child_field="variants")

@@ -60,6 +60,59 @@ ORDERS_BULK_QUERY = f"""
 }}
 """
 
+PRODUCT_FIELDS = """
+  id
+  title
+  handle
+  vendor
+  productType
+  status
+  createdAt
+  updatedAt
+  tags
+  variants(first: 100) {
+    pageInfo { hasNextPage }
+    edges {
+      node {
+        id
+        title
+        sku
+        price
+        compareAtPrice
+        inventoryQuantity
+        position
+      }
+    }
+  }
+"""
+
+# Cursor-paginated query for incremental syncs.
+PRODUCTS_INCREMENTAL_QUERY = f"""
+query ProductsIncremental($cursor: String, $queryFilter: String!) {{
+  products(first: 50, after: $cursor, sortKey: UPDATED_AT, query: $queryFilter) {{
+    pageInfo {{ hasNextPage endCursor }}
+    edges {{
+      node {{
+        {PRODUCT_FIELDS}
+      }}
+    }}
+  }}
+}}
+"""
+
+# Query text handed to bulkOperationRunQuery for the full historical backfill.
+PRODUCTS_BULK_QUERY = f"""
+{{
+  products {{
+    edges {{
+      node {{
+        {PRODUCT_FIELDS}
+      }}
+    }}
+  }}
+}}
+"""
+
 START_BULK_OPERATION_MUTATION = """
 mutation StartBulkOperation($query: String!) {
   bulkOperationRunQuery(query: $query) {

@@ -43,3 +43,30 @@ def test_load_orders_stages_merges_and_cleans_up(tmp_path: Path):
 
     # Local temp file should be cleaned up after load.
     assert list(tmp_path.glob("*.jsonl.gz")) == []
+
+
+def test_load_products_skips_snowflake_roundtrip_when_no_products(tmp_path: Path):
+    conn = MagicMock()
+
+    rows = loader.load_products(conn, [], tmp_path)
+
+    assert rows == 0
+    conn.cursor.assert_not_called()
+
+
+def test_load_products_stages_merges_and_cleans_up(tmp_path: Path):
+    conn = MagicMock()
+    cursor = conn.cursor.return_value
+    cursor.fetchone.return_value = (1, 0)  # 1 inserted, 0 updated
+
+    products = [{"id": "gid://shopify/Product/1", "updatedAt": "2026-01-01T00:00:00Z"}]
+    rows = loader.load_products(conn, products, tmp_path)
+
+    assert rows == 1
+
+    executed_sql = [call.args[0] for call in cursor.execute.call_args_list]
+    assert any("PUT file://" in sql and "AUTO_COMPRESS=FALSE" in sql for sql in executed_sql)
+    assert any("MERGE INTO" in sql and "SHOPIFY_PRODUCTS_JSON" in sql for sql in executed_sql)
+    assert any("REMOVE @" in sql for sql in executed_sql)
+
+    assert list(tmp_path.glob("*.jsonl.gz")) == []
