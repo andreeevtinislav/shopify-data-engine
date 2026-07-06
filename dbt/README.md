@@ -48,7 +48,11 @@ dbt/
 └── models/staging/shopify/
     ├── _shopify__sources.yml       # source def + freshness
     ├── schema.yml                    # column docs + tests
+    ├── stg_shopify__orders_json.sql
     ├── stg_shopify__orders.sql
     ├── stg_shopify__order_line_items.sql
-    └── stg_shopify__refunds.sql
+    ├── stg_shopify__refunds.sql
+    ├── stg_shopify__products_json.sql
+    ├── stg_shopify__products.sql
+    └── stg_shopify__product_variants.sql
 ```

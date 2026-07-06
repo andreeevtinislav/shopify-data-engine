@@ -40,3 +40,30 @@ models:
               arguments:
                 to: ref('stg_shopify__orders')
                 field: order_id
+
+  - name: stg_shopify__products_json
+    description: "Incrementally-maintained, deduped copy of RAW.SHOPIFY_PRODUCTS_JSON. Every other product model in this folder refs() this instead of the source directly, so there's one place that owns pulling 'what's new' out of RAW."
+    columns:
+      - name: _shopify_product_id
+        tests: [not_null, unique]
+
+  - name: stg_shopify__products
+    description: "One row per Shopify product, flattened from stg_shopify__products_json."
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: handle
+        tests: [not_null]
+
+  - name: stg_shopify__product_variants
+    description: "One row per Shopify product variant, unnested from the product payload's variants array."
+    columns:
+      - name: variant_id
+        tests: [not_null, unique]
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_shopify__products')
+                field: product_id

@@ -16,3 +16,10 @@ sources:
         columns:
           - name: _shopify_order_id
             tests: [not_null]
+
+      - name: products_json
+        identifier: SHOPIFY_PRODUCTS_JSON
+        description: "Raw Shopify product payloads (GraphQL Admin API), one row per product, MERGE-upserted by Shopify product id."
+        columns:
+          - name: _shopify_product_id
+            tests: [not_null]
