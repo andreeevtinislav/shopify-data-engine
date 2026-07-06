@@ -1,0 +1,3 @@
+roles:
+  - name: shopify-webhook-receiver-exec
+    assume_role_service: lambda.amazonaws.com

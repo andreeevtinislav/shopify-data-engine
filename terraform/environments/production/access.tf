@@ -15,7 +15,8 @@ module "access" {
   stages = module.stage.stages
 
   service_user_rsa_public_keys = {
-    SHOPIFY_LOADER_ROLE = var.pipeline_rsa_public_key
-    DBT_TRANSFORM_ROLE  = var.dbt_transform_rsa_public_key
+    SHOPIFY_LOADER_ROLE  = var.pipeline_rsa_public_key
+    SHOPIFY_WEBHOOK_ROLE = var.webhook_rsa_public_key
+    DBT_TRANSFORM_ROLE   = var.dbt_transform_rsa_public_key
   }
 }

@@ -1,0 +1,14 @@
+# Container image (not a zip) because snowflake-connector-python's transitive
+# deps (pyarrow etc.) commonly exceed the 250MB unzipped Lambda zip/layer
+# limit — container images support up to 10GB. Build/push with:
+#   docker build -f Dockerfile.webhook -t <ecr-repo>:<tag> .
+#   docker push <ecr-repo>:<tag>
+# then pass that URI as terraform/webhooks' ecr_image_uri.
+FROM public.ecr.aws/lambda/python:3.11
+
+COPY pyproject.toml ${LAMBDA_TASK_ROOT}/pyproject.toml
+COPY src ${LAMBDA_TASK_ROOT}/src
+
+RUN pip install --no-cache-dir "${LAMBDA_TASK_ROOT}"
+
+CMD ["shopify_engine.webhook.handler.lambda_handler"]

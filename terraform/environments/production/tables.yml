@@ -37,6 +37,24 @@ tables:
 
   - database: SHOPIFY_DATA
     schema: RAW
+    name: ORDER_CHANGE_LOG
+    comment: "Lightweight CDC change-log, populated by a stream+task off SHOPIFY_ORDERS_JSON. Not consumed by dbt."
+    columns:
+      - name: ORDER_ID
+        type: STRING
+        nullable: false
+      - name: ACTION
+        type: STRING
+        nullable: false
+      - name: IS_UPDATE
+        type: BOOLEAN
+        nullable: false
+      - name: CHANGED_AT
+        type: TIMESTAMP_NTZ
+        default_expression: "CURRENT_TIMESTAMP()"
+
+  - database: SHOPIFY_DATA
+    schema: RAW
     name: _SYNC_STATE
     comment: "Watermark/state tracking per synced object (e.g. orders) for backfill/incremental runs."
     columns:

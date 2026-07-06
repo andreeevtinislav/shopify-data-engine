@@ -1,0 +1,4 @@
+functions:
+  - name: shopify-webhook-receiver
+    timeout: 30
+    memory_size: 512

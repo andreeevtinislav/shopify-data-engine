@@ -1,0 +1,3 @@
+log_groups:
+  - name: /aws/lambda/shopify-webhook-receiver
+    retention_in_days: 30

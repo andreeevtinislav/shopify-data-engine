@@ -22,6 +22,14 @@ output "pipeline_service_user" {
   value = module.access.service_user_names["SHOPIFY_LOADER_ROLE"]
 }
 
+output "webhook_role_name" {
+  value = module.access.role_names["SHOPIFY_WEBHOOK_ROLE"]
+}
+
+output "webhook_service_user" {
+  value = module.access.service_user_names["SHOPIFY_WEBHOOK_ROLE"]
+}
+
 output "dbt_transform_role_name" {
   value = module.access.role_names["DBT_TRANSFORM_ROLE"]
 }

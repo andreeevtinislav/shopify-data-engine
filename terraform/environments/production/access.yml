@@ -12,6 +12,19 @@ roles:
         privilege: readwrite
         object_types: [TABLES, STAGES]
 
+  - name: SHOPIFY_WEBHOOK_ROLE
+    comment: "Runtime role for the Shopify webhook receiver Lambda. Read/write on RAW schema only — same scope as SHOPIFY_LOADER_ROLE, separate credential for blast-radius isolation."
+    service_user:
+      name: SHOPIFY_WEBHOOK_SVC
+      comment: "Service account used by the webhook receiver Lambda (ingestion/src/shopify_engine/webhook/handler.py)."
+      default_database: SHOPIFY_DATA
+      default_schema: RAW
+    grants:
+      - database: SHOPIFY_DATA
+        schema: RAW
+        privilege: readwrite
+        object_types: [TABLES, STAGES]
+
   - name: DBT_TRANSFORM_ROLE
     comment: "Runtime role for the dbt transformation project (../dbt). Read-only on RAW, full access on STAGING."
     service_user:

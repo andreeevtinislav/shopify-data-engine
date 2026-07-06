@@ -1,0 +1,5 @@
+apis:
+  - name: shopify-webhook-receiver-api
+    routes:
+      - route_key: "POST /webhooks/shopify"
+        lambda_function_key: shopify-webhook-receiver

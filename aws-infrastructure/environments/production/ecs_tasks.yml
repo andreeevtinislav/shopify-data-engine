@@ -1,0 +1,10 @@
+tasks:
+  - family: shopify-engine
+    container_name: shopify-engine
+    command: ["ddtrace-run", "sync-orders"]
+    cpu: 512
+    memory: 1024
+    dd_service: shopify-engine
+    dd_site: datadoghq.eu
+    dd_env: production
+    dd_version: latest

@@ -1,0 +1,6 @@
+streams:
+  - database: SHOPIFY_DATA
+    schema: RAW
+    name: SHOPIFY_ORDERS_JSON_STREAM
+    on_table: "SHOPIFY_DATA.RAW.SHOPIFY_ORDERS_JSON"
+    comment: "CDC stream on SHOPIFY_ORDERS_JSON, consumed by ORDER_CHANGE_LOG_TASK. Independent of dbt, which reads SHOPIFY_ORDERS_JSON directly and is unaffected by this stream's offset."

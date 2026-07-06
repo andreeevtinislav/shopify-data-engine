@@ -1,0 +1,13 @@
+tasks:
+  - database: SHOPIFY_DATA
+    schema: RAW
+    name: ORDER_CHANGE_LOG_TASK
+    warehouse: SHOPIFY_WH
+    schedule_minutes: 1
+    when: "SYSTEM$STREAM_HAS_DATA('SHOPIFY_DATA.RAW.SHOPIFY_ORDERS_JSON_STREAM')"
+    sql_statement: >-
+      INSERT INTO SHOPIFY_DATA.RAW.ORDER_CHANGE_LOG (order_id, action, is_update, changed_at)
+      SELECT _shopify_order_id, METADATA$ACTION, METADATA$ISUPDATE, CURRENT_TIMESTAMP()
+      FROM SHOPIFY_DATA.RAW.SHOPIFY_ORDERS_JSON_STREAM
+    started: true
+    comment: "Drains SHOPIFY_ORDERS_JSON_STREAM into ORDER_CHANGE_LOG every minute the stream has data. Does not touch dbt's STAGING build."

@@ -4,6 +4,12 @@ dbt project that transforms raw Shopify data landed by `../ingestion` into typed
 query-ready models. v1 (this pass) covers the staging layer only (bronze -> silver);
 marts/dim-fact (silver -> gold) are future work.
 
+Note: `RAW.ORDER_CHANGE_LOG` (a CDC change-log populated by a Snowflake Stream +
+Task, provisioned in `../terraform`) also lives in `RAW` but is intentionally
+**not** a dbt source — it's a separate, low-latency consumer of
+`SHOPIFY_ORDERS_JSON`, unrelated to this project's own incremental build off
+the same table. Don't be surprised it's un-sourced here.
+
 ## Setup
 
 ### 1. Snowflake infrastructure
