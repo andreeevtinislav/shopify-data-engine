@@ -1,8 +1,8 @@
 # terraform
 
-Provisions the Snowflake infrastructure (warehouse, database, schema, tables, stage, and the pipeline's runtime role/service user) for the Shopify ingestion pipeline in `../ingestion`.
+Provisions the infrastructure for the whole platform: the Snowflake side (warehouse, database, schemas, tables, stage, and a least-privilege role/service user for each of `../ingestion` and `../dbt`), and the AWS side the pipeline runs on in production (ECS Fargate + a Datadog Agent sidecar for APM, log collection, and metrics).
 
-Organized as reusable modules (`modules/{warehouse,database,table,stage,access}`) driven by per-environment YAML config (`environments/production/*.yml`). To add a new table, warehouse, or database object, edit the relevant `.yml` file in `environments/production/` — no HCL changes needed unless the shape of the config itself changes.
+Snowflake resources are organized as reusable modules (`modules/{warehouse,database,table,stage,access}`) driven by per-environment YAML config (`environments/production/*.yml`). To add a new table, warehouse, or database object, edit the relevant `.yml` file in `environments/production/` — no HCL changes needed unless the shape of the config itself changes. `ecs/` (AWS/ECS/Datadog) is plain HCL, since it's a single task definition rather than a growing list of similarly-shaped objects.
 
 ## Setup
 
@@ -48,7 +48,17 @@ terraform plan
 terraform apply
 ```
 
-This creates the `SHOPIFY_WH` warehouse, `SHOPIFY_DATA.RAW` schema, an internal stage, the `SHOPIFY_ORDERS_JSON` and `_SYNC_STATE` tables, and a least-privilege `SHOPIFY_LOADER_ROLE` + service user for the pipeline to run as.
+This creates the `SHOPIFY_WH` warehouse, `SHOPIFY_DATA.RAW`/`STAGING` schemas, an internal stage, the `SHOPIFY_ORDERS_JSON`, `SHOPIFY_PRODUCTS_JSON`, and `_SYNC_STATE` tables, and two least-privilege roles + service users: `SHOPIFY_LOADER_ROLE` (read/write on `RAW`, for `../ingestion`) and `DBT_TRANSFORM_ROLE` (read-only on `RAW`, read/write on `STAGING`, for `../dbt`).
+
+### 3. ECS + Datadog (production runtime)
+
+`ecs/` provisions the ECS Fargate task that runs the ingestion pipeline in production, with a Datadog Agent sidecar for APM (`ddtrace-run`), log collection (via FireLens), and metrics. The Datadog API key is stored in AWS Secrets Manager, passed in at apply time rather than hard-coded:
+
+```bash
+cd ecs
+terraform init
+TF_VAR_dd_api_key="<datadog api key>" TF_VAR_ecr_image_uri="<ecr image uri>" terraform apply
+```
 
 ## Layout
 
@@ -61,12 +71,16 @@ terraform/
 │   ├── table/                  # separate module from database
 │   ├── stage/
 │   └── access/                  # role, grants, service user
-└── environments/
-    └── production/
-        ├── providers.tf, variables.tf, outputs.tf, moved.tf
-        ├── warehouses.tf  + warehouses.yml
-        ├── databases.tf   + databases.yml
-        ├── tables.tf      + tables.yml
-        ├── stages.tf      + stages.yml
-        └── access.tf      + access.yml
+├── environments/
+│   └── production/
+│       ├── providers.tf, variables.tf, outputs.tf, moved.tf
+│       ├── warehouses.tf  + warehouses.yml
+│       ├── databases.tf   + databases.yml
+│       ├── tables.tf      + tables.yml
+│       ├── stages.tf      + stages.yml
+│       └── access.tf      + access.yml
+└── ecs/                      # ECS Fargate task + Datadog Agent sidecar (production runtime)
+    ├── main.tf                 # Secrets Manager secret + Datadog ECS Fargate module
+    ├── providers.tf
+    └── variables.tf
 ```

@@ -1,11 +1,13 @@
 # ingestion
 
-Custom Python pipeline that loads Shopify data into Snowflake, landed as raw JSON — no transformation layer yet for new objects (that's a future dbt project; orders already have one). Currently covers:
+Custom Python pipeline that loads Shopify data into Snowflake, landed as raw JSON. Currently covers:
 
 - **orders** — orders, line items, refunds
 - **products** — products, variants
 
-Snowflake infrastructure for this pipeline is provisioned separately by `../terraform`.
+Both are transformed further by the dbt staging layer in `../dbt`. Snowflake infrastructure for this pipeline is provisioned separately by `../terraform`.
+
+In production this runs as an ECS Fargate task (see `../terraform/ecs/`) with a Datadog Agent sidecar: the CLI entrypoint is wrapped with `ddtrace-run` for APM, and logs ship to Datadog via FireLens. Locally, none of that is required — `ddtrace-run` is a no-op without a reachable agent.
 
 ## Setup
 
