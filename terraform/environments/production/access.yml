@@ -26,7 +26,7 @@ roles:
         object_types: [TABLES, STAGES]
 
   - name: DBT_TRANSFORM_ROLE
-    comment: "Runtime role for the dbt transformation project (../dbt). Read-only on RAW, full access on STAGING."
+    comment: "Runtime role for the dbt transformation project (../dbt). Read-only on RAW, full access on STAGING and SNAPSHOTS."
     service_user:
       name: DBT_TRANSFORM_SVC
       comment: "Service account used by dbt to build and test staging/mart models."
@@ -41,3 +41,7 @@ roles:
         schema: STAGING
         privilege: readwrite
         object_types: [TABLES, VIEWS]
+      - database: SHOPIFY_DATA
+        schema: SNAPSHOTS
+        privilege: readwrite
+        object_types: [TABLES]

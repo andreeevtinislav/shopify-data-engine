@@ -6,3 +6,5 @@ databases:
         comment: "Raw, untransformed Shopify API payloads. Source schema for the dbt project."
       - name: STAGING
         comment: "dbt staging models (bronze -> silver): typed, flattened views over RAW. Owned by DBT_TRANSFORM_ROLE."
+      - name: SNAPSHOTS
+        comment: "dbt snapshots: SCD Type 2 history of mutable records (e.g. order status transitions). Owned by DBT_TRANSFORM_ROLE."

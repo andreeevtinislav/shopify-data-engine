@@ -1,0 +1,15 @@
+version: 2
+
+snapshots:
+  - name: snapshot_shopify__orders
+    description: >
+      SCD Type 2 history of order status. One row per distinct version of
+      (financial_status, fulfillment_status, cancelled_at) an order has had,
+      bounded by dbt_valid_from/dbt_valid_to — e.g. "UNFULFILLED from X to Y,
+      then FULFILLED from Y onward." A return shows up as financial_status
+      moving to PARTIALLY_REFUNDED/REFUNDED.
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: dbt_valid_from
+        tests: [not_null]

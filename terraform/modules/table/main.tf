@@ -8,10 +8,11 @@ locals {
 resource "snowflake_table" "this" {
   for_each = local.tables
 
-  database = each.value.database
-  schema   = each.value.schema
-  name     = each.value.name
-  comment  = try(each.value.comment, null)
+  database        = each.value.database
+  schema          = each.value.schema
+  name            = each.value.name
+  comment         = try(each.value.comment, null)
+  change_tracking = each.value.change_tracking
 
   dynamic "column" {
     for_each = each.value.columns

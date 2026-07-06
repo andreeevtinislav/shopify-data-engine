@@ -3,6 +3,11 @@ tables:
     schema: RAW
     name: SHOPIFY_ORDERS_JSON
     comment: "Raw Shopify order payloads (GraphQL Admin API), upserted by Shopify order id."
+    # Required by SHOPIFY_ORDERS_JSON_STREAM (see streams.yml) — Snowflake
+    # auto-enables this the moment a stream is created on a table, so it must
+    # be declared here too or Terraform will "correct" it back to false on
+    # the next apply and silently invalidate the stream.
+    change_tracking: true
     columns:
       - name: _SHOPIFY_ORDER_ID
         type: STRING
