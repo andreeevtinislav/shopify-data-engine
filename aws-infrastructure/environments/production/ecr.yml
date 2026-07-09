@@ -1,3 +1,4 @@
 repositories:
   - name: shopify-webhook-receiver
   - name: shopify-engine
+  - name: shopify-airflow

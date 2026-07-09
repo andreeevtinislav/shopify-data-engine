@@ -1,0 +1,8 @@
+filesystems:
+  # Holds Airflow's task logs only, mounted at /opt/airflow/logs — NOT the
+  # SQLite metadata DB, which lives on local/ephemeral task storage instead
+  # (SQLite's file locking doesn't work reliably over NFS/EFS).
+  - name: shopify-airflow-data
+    root_directory: /airflow-logs
+    posix_uid: 50000
+    posix_gid: 0

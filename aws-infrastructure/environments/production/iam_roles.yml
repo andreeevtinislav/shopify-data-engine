@@ -1,3 +1,7 @@
 roles:
   - name: shopify-webhook-receiver-exec
     assume_role_service: lambda.amazonaws.com
+  - name: shopify-airflow-exec
+    assume_role_service: ecs-tasks.amazonaws.com
+  - name: shopify-airflow-task
+    assume_role_service: ecs-tasks.amazonaws.com

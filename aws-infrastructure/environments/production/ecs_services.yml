@@ -1,0 +1,10 @@
+services:
+  - name: shopify-airflow
+    container_name: shopify-airflow
+    container_port: 8080
+    # airflow standalone runs three processes (webserver, scheduler,
+    # triggerer) plus gunicorn workers — at 512/1024 the container froze
+    # mid-startup (all logging stopped, webserver never bound :8080).
+    cpu: 1024
+    memory: 2048
+    desired_count: 1

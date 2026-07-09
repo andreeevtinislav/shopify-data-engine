@@ -2,9 +2,52 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "EcrAuth",
+      "Sid": "Wildcard",
       "Effect": "Allow",
-      "Action": ["ecr:GetAuthorizationToken"],
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "secretsmanager:CreateSecret",
+        "secretsmanager:ListSecrets",
+        "logs:DescribeLogGroups",
+        "ecs:RegisterTaskDefinition",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:DescribeTaskDefinition",
+        "ecs:ListTasks",
+        "ecs:DescribeTasks",
+        "elasticfilesystem:CreateFileSystem",
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DeleteFileSystem",
+        "elasticfilesystem:CreateMountTarget",
+        "elasticfilesystem:DescribeMountTargets",
+        "elasticfilesystem:DeleteMountTarget",
+        "elasticfilesystem:CreateAccessPoint",
+        "elasticfilesystem:DescribeAccessPoints",
+        "elasticfilesystem:DeleteAccessPoint",
+        "elasticfilesystem:TagResource",
+        "elasticfilesystem:DescribeLifecycleConfiguration",
+        "elasticfilesystem:DescribeMountTargetSecurityGroups",
+        "elasticfilesystem:ModifyMountTargetSecurityGroups",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeVpcAttribute",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSecurityGroupRules",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags",
+        "ec2:DescribeTags",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:DescribeNetworkInterfaceAttribute",
+        "ec2:DescribeAvailabilityZones",
+        "sts:GetCallerIdentity"
+      ],
       "Resource": "*"
     },
     {
@@ -32,14 +75,9 @@
       ],
       "Resource": [
         "arn:aws:ecr:<region>:<account-id>:repository/shopify-webhook-receiver",
-        "arn:aws:ecr:<region>:<account-id>:repository/shopify-engine"
+        "arn:aws:ecr:<region>:<account-id>:repository/shopify-engine",
+        "arn:aws:ecr:<region>:<account-id>:repository/shopify-airflow"
       ]
-    },
-    {
-      "Sid": "SecretsCreateAndList",
-      "Effect": "Allow",
-      "Action": ["secretsmanager:CreateSecret", "secretsmanager:ListSecrets"],
-      "Resource": "*"
     },
     {
       "Sid": "SecretsManage",
@@ -50,6 +88,7 @@
         "secretsmanager:GetSecretValue",
         "secretsmanager:PutSecretValue",
         "secretsmanager:UpdateSecret",
+        "secretsmanager:UpdateSecretVersionStage",
         "secretsmanager:TagResource",
         "secretsmanager:UntagResource",
         "secretsmanager:GetResourcePolicy"
@@ -58,11 +97,13 @@
         "arn:aws:secretsmanager:<region>:<account-id>:secret:shopify/access-token-*",
         "arn:aws:secretsmanager:<region>:<account-id>:secret:shopify/webhook-secret-*",
         "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/webhook-private-key-*",
-        "arn:aws:secretsmanager:<region>:<account-id>:secret:datadog/api-key-*"
+        "arn:aws:secretsmanager:<region>:<account-id>:secret:datadog/api-key-*",
+        "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/pipeline-private-key-*",
+        "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/dbt-private-key-*"
       ]
     },
     {
-      "Sid": "IamLambdaExecRole",
+      "Sid": "IamRoles",
       "Effect": "Allow",
       "Action": [
         "iam:CreateRole",
@@ -76,7 +117,11 @@
         "iam:TagRole",
         "iam:PassRole"
       ],
-      "Resource": "arn:aws:iam::<account-id>:role/shopify-webhook-receiver-exec"
+      "Resource": [
+        "arn:aws:iam::<account-id>:role/shopify-webhook-receiver-exec",
+        "arn:aws:iam::<account-id>:role/shopify-airflow-exec",
+        "arn:aws:iam::<account-id>:role/shopify-airflow-task"
+      ]
     },
     {
       "Sid": "LambdaFunction",
@@ -105,38 +150,53 @@
       "Resource": "arn:aws:apigateway:<region>::/apis*"
     },
     {
-      "Sid": "LambdaLogGroup",
+      "Sid": "LogGroupsWithSuffix",
       "Effect": "Allow",
       "Action": [
         "logs:CreateLogGroup",
         "logs:DeleteLogGroup",
-        "logs:PutRetentionPolicy"
+        "logs:PutRetentionPolicy",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents",
+        "logs:DescribeLogStreams"
       ],
-      "Resource": "arn:aws:logs:<region>:<account-id>:log-group:/aws/lambda/shopify-webhook-receiver:*"
+      "Resource": [
+        "arn:aws:logs:<region>:<account-id>:log-group:/aws/lambda/shopify-webhook-receiver:*",
+        "arn:aws:logs:<region>:<account-id>:log-group:/ecs/shopify-airflow:*"
+      ]
     },
     {
-      "Sid": "LambdaLogGroupTags",
+      "Sid": "LogGroupsTags",
       "Effect": "Allow",
       "Action": ["logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource"],
-      "Resource": "arn:aws:logs:<region>:<account-id>:log-group:/aws/lambda/shopify-webhook-receiver"
+      "Resource": [
+        "arn:aws:logs:<region>:<account-id>:log-group:/aws/lambda/shopify-webhook-receiver",
+        "arn:aws:logs:<region>:<account-id>:log-group:/ecs/shopify-airflow"
+      ]
     },
     {
-      "Sid": "LambdaLogGroupDescribe",
+      "Sid": "EcsCluster",
       "Effect": "Allow",
-      "Action": ["logs:DescribeLogGroups"],
-      "Resource": "*"
+      "Action": [
+        "ecs:CreateCluster",
+        "ecs:DescribeClusters",
+        "ecs:DeleteCluster",
+        "ecs:TagResource",
+        "ecs:UntagResource",
+        "ecs:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:ecs:<region>:<account-id>:cluster/shopify-data-engine"
     },
     {
-      "Sid": "LambdaLogRead",
+      "Sid": "EcsService",
       "Effect": "Allow",
-      "Action": ["logs:GetLogEvents", "logs:FilterLogEvents", "logs:DescribeLogStreams"],
-      "Resource": "arn:aws:logs:<region>:<account-id>:log-group:/aws/lambda/shopify-webhook-receiver:*"
-    },
-    {
-      "Sid": "WhoAmI",
-      "Effect": "Allow",
-      "Action": ["sts:GetCallerIdentity"],
-      "Resource": "*"
+      "Action": [
+        "ecs:CreateService",
+        "ecs:UpdateService",
+        "ecs:DeleteService",
+        "ecs:DescribeServices"
+      ],
+      "Resource": "arn:aws:ecs:<region>:<account-id>:service/shopify-data-engine/shopify-airflow"
     }
   ]
 }

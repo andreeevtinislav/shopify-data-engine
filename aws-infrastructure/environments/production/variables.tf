@@ -56,6 +56,18 @@ variable "datadog_api_key" {
   sensitive   = true
 }
 
+variable "snowflake_pipeline_private_key_pem" {
+  description = "PEM-encoded RSA private key for SHOPIFY_PIPELINE_SVC (contents of ../../../ingestion/secrets/snowflake_key.p8), used by the Airflow container's incremental-sync task."
+  type        = string
+  sensitive   = true
+}
+
+variable "snowflake_dbt_private_key_pem" {
+  description = "PEM-encoded RSA private key for DBT_TRANSFORM_SVC (contents of ../../../dbt/secrets/dbt_transform_key.p8), used by the Airflow container's dbt run/snapshot tasks."
+  type        = string
+  sensitive   = true
+}
+
 # --- Non-sensitive settings, passed to the webhook Lambda as plain
 # environment variables (see Settings.from_env() in
 # ingestion/src/shopify_engine/config.py). ---
@@ -100,4 +112,38 @@ variable "snowflake_webhook_user" {
   description = "Must match the service_user name provisioned in ../../../terraform/environments/production/access.yml"
   type        = string
   default     = "SHOPIFY_WEBHOOK_SVC"
+}
+
+variable "snowflake_pipeline_role" {
+  description = "Must match the role name provisioned in ../../../terraform/environments/production/access.yml"
+  type        = string
+  default     = "SHOPIFY_LOADER_ROLE"
+}
+
+variable "snowflake_pipeline_user" {
+  description = "Must match the service_user name provisioned in ../../../terraform/environments/production/access.yml"
+  type        = string
+  default     = "SHOPIFY_PIPELINE_SVC"
+}
+
+variable "snowflake_dbt_role" {
+  description = "Must match the role name provisioned in ../../../terraform/environments/production/access.yml"
+  type        = string
+  default     = "DBT_TRANSFORM_ROLE"
+}
+
+variable "snowflake_dbt_user" {
+  description = "Must match the service_user name provisioned in ../../../terraform/environments/production/access.yml"
+  type        = string
+  default     = "DBT_TRANSFORM_SVC"
+}
+
+variable "airflow_ui_allowed_cidr" {
+  description = <<-EOT
+    CIDR block allowed to reach the Airflow webserver on port 8080. Set this
+    to your own IP (e.g. "203.0.113.4/32" — check https://checkip.amazonaws.com)
+    rather than leaving it wide open; Airflow's own login screen is a second
+    layer, not a substitute for network-level restriction.
+  EOT
+  type        = string
 }

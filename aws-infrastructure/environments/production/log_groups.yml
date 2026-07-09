@@ -1,3 +1,5 @@
 log_groups:
   - name: /aws/lambda/shopify-webhook-receiver
     retention_in_days: 30
+  - name: /ecs/shopify-airflow
+    retention_in_days: 14
