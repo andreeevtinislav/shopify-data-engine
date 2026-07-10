@@ -10,5 +10,6 @@ module "secret" {
     "datadog/api-key"                = var.datadog_api_key
     "snowflake/pipeline-private-key" = var.snowflake_pipeline_private_key_pem
     "snowflake/dbt-private-key"      = var.snowflake_dbt_private_key_pem
+    "airflow/admin-password"         = var.airflow_admin_password
   }
 }

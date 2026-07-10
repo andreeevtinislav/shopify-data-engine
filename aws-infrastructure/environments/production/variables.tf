@@ -68,6 +68,12 @@ variable "snowflake_dbt_private_key_pem" {
   sensitive   = true
 }
 
+variable "airflow_admin_password" {
+  description = "Fixed password for the Airflow webserver's admin user (see ../../../airflow/entrypoint.sh). Generate with e.g. `openssl rand -base64 24 | tr -d '/+=' | head -c 24`."
+  type        = string
+  sensitive   = true
+}
+
 # --- Non-sensitive settings, passed to the webhook Lambda as plain
 # environment variables (see Settings.from_env() in
 # ingestion/src/shopify_engine/config.py). ---

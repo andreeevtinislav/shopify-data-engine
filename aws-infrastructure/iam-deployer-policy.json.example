@@ -89,6 +89,7 @@
         "secretsmanager:PutSecretValue",
         "secretsmanager:UpdateSecret",
         "secretsmanager:UpdateSecretVersionStage",
+        "secretsmanager:RestoreSecret",
         "secretsmanager:TagResource",
         "secretsmanager:UntagResource",
         "secretsmanager:GetResourcePolicy"
@@ -99,7 +100,8 @@
         "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/webhook-private-key-*",
         "arn:aws:secretsmanager:<region>:<account-id>:secret:datadog/api-key-*",
         "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/pipeline-private-key-*",
-        "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/dbt-private-key-*"
+        "arn:aws:secretsmanager:<region>:<account-id>:secret:snowflake/dbt-private-key-*",
+        "arn:aws:secretsmanager:<region>:<account-id>:secret:airflow/admin-password-*"
       ]
     },
     {

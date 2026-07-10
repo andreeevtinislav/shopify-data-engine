@@ -33,6 +33,7 @@ data "aws_iam_policy_document" "airflow_exec" {
       module.secret.secret_arns["shopify/access-token"],
       module.secret.secret_arns["snowflake/pipeline-private-key"],
       module.secret.secret_arns["snowflake/dbt-private-key"],
+      module.secret.secret_arns["airflow/admin-password"],
     ]
   }
 
