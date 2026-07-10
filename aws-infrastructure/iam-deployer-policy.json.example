@@ -69,6 +69,8 @@
         "ecr:BatchGetImage",
         "ecr:GetDownloadUrlForLayer",
         "ecr:DescribeImages",
+        "ecr:ListImages",
+        "ecr:BatchDeleteImage",
         "ecr:SetRepositoryPolicy",
         "ecr:GetRepositoryPolicy",
         "ecr:DeleteRepositoryPolicy"
@@ -111,6 +113,7 @@
         "iam:CreateRole",
         "iam:GetRole",
         "iam:DeleteRole",
+        "iam:ListInstanceProfilesForRole",
         "iam:PutRolePolicy",
         "iam:GetRolePolicy",
         "iam:DeleteRolePolicy",

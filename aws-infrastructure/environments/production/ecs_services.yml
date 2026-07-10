@@ -7,4 +7,9 @@ services:
     # mid-startup (all logging stopped, webserver never bound :8080).
     cpu: 1024
     memory: 2048
+    # Fargate has no free tier — this task ran 24/7 at ~$40-45/month
+    # regardless of DAG activity, so the whole aws-infrastructure stack was
+    # torn down (`terraform destroy`) rather than just scaled to 0, since
+    # Secrets Manager's flat per-secret fee doesn't stop by pausing compute.
+    # Set back to 1 and re-run the full setup in ../../README.md to resume.
     desired_count: 1
